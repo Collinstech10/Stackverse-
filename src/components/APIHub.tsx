@@ -21,8 +21,10 @@ import {
   RefreshCw
 } from "lucide-react";
 import { DeveloperAPI } from "../types";
+import { useToast } from "./ToastContext";
 
 export default function APIHub() {
+  const toast = useToast();
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedApiId, setSelectedApiId] = useState<string>("a1");
   const [isCallingAPI, setIsCallingAPI] = useState(false);
@@ -125,6 +127,7 @@ export default function APIHub() {
 
       const data = await res.json();
       setPlaygroundResponse(data.body || data);
+      toast.success("API Test Completed", `Successfully executed playground test query on ${selectedApi.name}.`);
 
     } catch (err: any) {
       console.error(err);
@@ -132,6 +135,7 @@ export default function APIHub() {
         error: "Sandbox parsing error",
         message: err.message || "Ensure your payload is structured as correct JSON."
       });
+      toast.error("API Test Failed", err.message || "Ensure your payload is structured as correct JSON.");
     } finally {
       setIsCallingAPI(false);
     }
@@ -141,6 +145,7 @@ export default function APIHub() {
     navigator.clipboard.writeText(text);
     setCopiedLabel(label);
     setTimeout(() => setCopiedLabel(null), 2000);
+    toast.success("Code Copied", "Developer code snippet copied to clipboard.");
   };
 
   const getCodeSnippets = (api: DeveloperAPI) => {

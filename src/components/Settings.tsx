@@ -19,8 +19,10 @@ import {
   Terminal,
   Cpu
 } from "lucide-react";
+import { useToast } from "./ToastContext";
 
 export default function SettingsComponent() {
+  const toast = useToast();
   const [activeTab, setActiveTab] = useState<"security" | "profile" | "connections">("security");
   
   // 1. Profile settings state
@@ -56,10 +58,15 @@ export default function SettingsComponent() {
     setApiKeys([...apiKeys, newKey]);
     setNewKeyName("");
     setShowAddKey(false);
+    toast.success("Security Key Generated", `Successfully provisioned sandbox developer key "${newKeyName}".`);
   };
 
   const deleteKey = (id: string) => {
+    const keyToDelete = apiKeys.find(k => k.id === id);
     setApiKeys(apiKeys.filter(k => k.id !== id));
+    if (keyToDelete) {
+      toast.info("Security Key Removed", `Deleted development key "${keyToDelete.name}".`);
+    }
   };
 
   const toggleKeyVisibility = (id: string) => {
@@ -70,6 +77,7 @@ export default function SettingsComponent() {
     navigator.clipboard.writeText(text);
     setCopiedKeyId(id);
     setTimeout(() => setCopiedKeyId(null), 2000);
+    toast.success("Key Copied", "Sandbox API key copied to clipboard.");
   };
 
   // 4. Rate limiting state
@@ -84,7 +92,15 @@ export default function SettingsComponent() {
   ]);
 
   const toggleConnection = (service: string) => {
-    setConnections(connections.map(conn => conn.service === service ? { ...conn, connected: !conn.connected } : conn));
+    const conn = connections.find(c => c.service === service);
+    setConnections(connections.map(c => c.service === service ? { ...c, connected: !c.connected } : c));
+    if (conn) {
+      if (conn.connected) {
+        toast.info("Pipeline Disconnected", `Disconnected remote node from ${conn.name}.`);
+      } else {
+        toast.success("Pipeline Synchronized", `Successfully authorized live sync channel for ${conn.name}.`);
+      }
+    }
   };
 
   return (
@@ -215,6 +231,15 @@ export default function SettingsComponent() {
                 onChange={(e) => setRateLimitRule(parseInt(e.target.value))}
                 className="w-full accent-indigo-500 cursor-pointer"
               />
+              <div className="flex justify-end pt-2">
+                <button
+                  type="button"
+                  onClick={() => toast.success("Settings saved", `Sandbox rate-limit successfully updated to ${rateLimitRule} req/min.`)}
+                  className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-bold cursor-pointer transition-all shadow-md"
+                >
+                  Save Configuration
+                </button>
+              </div>
             </div>
           </div>
         )}
@@ -256,6 +281,15 @@ export default function SettingsComponent() {
                   onChange={(e) => setProfileBio(e.target.value)}
                   className="w-full text-xs px-3.5 py-3 bg-slate-950 border border-white/5 rounded-xl text-slate-100 focus:outline-none resize-none leading-relaxed"
                 />
+              </div>
+              <div className="flex justify-end pt-2">
+                <button
+                  type="button"
+                  onClick={() => toast.success("Settings saved", `Profile credentials for "${profileName}" saved successfully.`)}
+                  className="px-4 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-bold cursor-pointer transition-all shadow-md"
+                >
+                  Save Profile Credentials
+                </button>
               </div>
             </div>
           </div>

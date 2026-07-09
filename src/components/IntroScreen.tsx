@@ -33,6 +33,16 @@ export default function IntroScreen({ onComplete }: IntroScreenProps) {
     return () => clearInterval(timer);
   }, []);
 
+  // Auto-complete when progress reaches 100%
+  useEffect(() => {
+    if (progress >= 100) {
+      const exitTimer = setTimeout(() => {
+        onComplete();
+      }, 450); // elegant 450ms delay for visual wrap-up
+      return () => clearTimeout(exitTimer);
+    }
+  }, [progress, onComplete]);
+
   // Stagger loading messages for immersion
   useEffect(() => {
     const textTimer1 = setTimeout(() => setLoadingText("Synchronizing Neural Clusters..."), 700);

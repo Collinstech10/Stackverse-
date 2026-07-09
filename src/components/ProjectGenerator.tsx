@@ -20,6 +20,7 @@ import {
   ArrowRight
 } from "lucide-react";
 import { ProjectBlueprint } from "../types";
+import { useToast } from "./ToastContext";
 
 // Recursive File Tree Node Renderer
 interface TreeNodeProps {
@@ -73,6 +74,7 @@ function FileTreeNode({ name, value, depth }: TreeNodeProps) {
 }
 
 export default function ProjectGenerator() {
+  const toast = useToast();
   const [projectIdea, setProjectIdea] = useState("");
   const [projectPlatform, setProjectPlatform] = useState("Full-stack SaaS");
   const [techPreferences, setTechPreferences] = useState("React 19, TypeScript, PostgreSQL, Gemini API");
@@ -155,10 +157,11 @@ export default function ProjectGenerator() {
       const data = await response.json();
       setBlueprint(data);
       setActiveTab("architecture");
+      toast.success("Project generated", `Successfully synthesized workspace blueprint for "${data.title}".`);
 
     } catch (err: any) {
       console.error(err);
-      alert(err.message || "Failed to generate project structure.");
+      toast.error("Generation Failed", err.message || "Failed to generate project structure.");
     } finally {
       setIsGenerating(false);
     }
@@ -175,6 +178,7 @@ export default function ProjectGenerator() {
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+    toast.success("Blueprint Exported", `"${blueprint.title}" architecture blueprint saved as JSON.`);
   };
 
   return (
@@ -470,7 +474,10 @@ export default function ProjectGenerator() {
               </p>
 
               <div className="space-y-2">
-                <button className="w-full text-left p-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white flex items-center justify-between transition-colors">
+                <button
+                  onClick={() => toast.success("Mock DB Deployed", "Successfully created virtual PostgreSQL schemas and synced Prisma configurations.")}
+                  className="w-full text-left p-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white flex items-center justify-between transition-colors cursor-pointer"
+                >
                   <div className="space-y-0.5">
                     <p className="text-xs font-semibold">Deploy Mock PostgreSQL</p>
                     <p className="text-[10px] text-indigo-200">Generate Prisma entity models</p>
@@ -478,7 +485,10 @@ export default function ProjectGenerator() {
                   <ChevronRight className="h-4.5 w-4.5" />
                 </button>
 
-                <button className="w-full text-left p-3 rounded-xl bg-slate-950 border border-white/5 text-slate-300 hover:border-indigo-500/30 flex items-center justify-between transition-all">
+                <button
+                  onClick={() => toast.info("Auditor Sandbox Check Passed", "No CORS or environment configuration anomalies detected. Sandbox gateway secure.")}
+                  className="w-full text-left p-3 rounded-xl bg-slate-950 border border-white/5 text-slate-300 hover:border-indigo-500/30 flex items-center justify-between transition-all cursor-pointer"
+                >
                   <div className="space-y-0.5">
                     <p className="text-xs font-semibold">Auditor Sandbox Check</p>
                     <p className="text-[10px] text-slate-500">Examine CORS rate limit limits</p>
