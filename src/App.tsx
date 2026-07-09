@@ -35,7 +35,13 @@ import UserProfile from "./components/UserProfile";
 import SettingsComponent from "./components/Settings";
 import IntroScreen from "./components/IntroScreen";
 
-export default function App({ isClerkConfigured = true }: { isClerkConfigured?: boolean }) {
+export default function App({ 
+  isClerkConfigured = true,
+  clerkError = null
+}: { 
+  isClerkConfigured?: boolean;
+  clerkError?: Error | null;
+}) {
   const [activeTab, setActiveTab] = useState<string>("dashboard");
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [bypassAuth, setBypassAuth] = useState(false);
@@ -259,16 +265,36 @@ export default function App({ isClerkConfigured = true }: { isClerkConfigured?: 
         {/* Content viewport area */}
         <main className="flex-grow p-6 overflow-y-auto relative h-[calc(100vh-64px)]">
           {!isClerkConfigured && (
-            <div className="mb-6 p-4 rounded-2xl bg-indigo-500/5 border border-indigo-500/20 text-indigo-400 flex items-start sm:items-center justify-between gap-4 text-xs">
-              <div className="flex items-start sm:items-center gap-3">
+            <div className="mb-6 p-4 rounded-2xl bg-indigo-500/5 border border-indigo-500/20 text-indigo-400 flex flex-col md:flex-row md:items-center justify-between gap-4 text-xs">
+              <div className="flex items-start md:items-center gap-3">
                 <div className="p-1.5 rounded-lg bg-indigo-500/10 shrink-0">
-                  <Sparkles className="h-4 w-4 text-indigo-400" />
+                  <Sparkles className="h-4 w-4 text-indigo-400 animate-pulse" />
                 </div>
                 <div>
-                  <p className="font-bold">Clerk Auth Sandbox Preview</p>
-                  <p className="text-slate-400 mt-0.5">The app is running in guest mode. Set <code className="font-mono text-[11px] text-indigo-300 bg-indigo-950/40 px-1 py-0.5 rounded">VITE_CLERK_PUBLISHABLE_KEY</code> in the Settings secrets menu to enable Clerk Auth.</p>
+                  <p className="font-bold text-slate-200">
+                    {clerkError ? "Clerk Authentication Blocked or Timed Out" : "Clerk Auth Sandbox Preview"}
+                  </p>
+                  <p className="text-slate-400 mt-0.5">
+                    {clerkError ? (
+                      <>
+                        We detected your publishable key, but <span className="text-rose-400 font-semibold">Clerk failed to load</span>. This is usually caused by <span className="text-indigo-300">adblockers</span>, privacy extensions, or a restrictive network firewall blocking Clerk's CDN domain (<code className="font-mono text-[11px] text-indigo-300 bg-indigo-950/40 px-1 py-0.5 rounded">clerk.accounts.dev</code>).
+                      </>
+                    ) : (
+                      <>
+                        The app is running in guest mode. Set <code className="font-mono text-[11px] text-indigo-300 bg-indigo-950/40 px-1 py-0.5 rounded">VITE_CLERK_PUBLISHABLE_KEY</code> in the Settings secrets menu to enable Clerk Auth.
+                      </>
+                    )}
+                  </p>
                 </div>
               </div>
+              {clerkError && (
+                <button
+                  onClick={() => window.location.reload()}
+                  className="px-3.5 py-1.5 bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-300 hover:text-white border border-indigo-500/30 rounded-xl text-xs font-bold cursor-pointer transition-all shrink-0"
+                >
+                  Retry Loading
+                </button>
+              )}
             </div>
           )}
           {isClerkConfigured && bypassAuth && (
