@@ -1,5 +1,6 @@
 import express from "express";
 import path from "path";
+import fs from "fs";
 import dotenv from "dotenv";
 import { createServer as createViteServer } from "vite";
 import { GoogleGenAI, Type } from "@google/genai";
@@ -406,7 +407,19 @@ Since this is an interactive developer tool, generate a highly detailed and acti
     const distPath = path.join(process.cwd(), 'dist');
     app.use(express.static(distPath));
     app.get('*', (req, res) => {
-      res.sendFile(path.join(distPath, 'index.html'));
+      const indexPath = path.join(distPath, 'index.html');
+      try {
+        const html = fs.readFileSync(indexPath, 'utf8');
+        const clerkKey = process.env.VITE_CLERK_PUBLISHABLE_KEY || '';
+        const injectedHtml = html.replace(
+          '<head>',
+          `<head><script>window.VITE_CLERK_PUBLISHABLE_KEY = ${JSON.stringify(clerkKey)};</script>`
+        );
+        res.send(injectedHtml);
+      } catch (err) {
+        console.error("Failed to read index.html in production mode:", err);
+        res.sendFile(indexPath);
+      }
     });
   }
 
