@@ -29,7 +29,27 @@ import {
   ArrowRight,
   Bookmark,
   CheckCircle,
+  X,
 } from "lucide-react";
+import {
+  getStoredXP,
+  addXP,
+  getStoredTokens,
+  addTokens,
+  getStoredProjects,
+  saveStoredProjects,
+  getStoredTasks,
+  saveStoredTasks,
+  getStoredCalendar,
+  saveStoredCalendar,
+  DEMO_PROJECTS,
+  DEMO_TASKS,
+  DEMO_CALENDAR,
+  Project,
+  Task,
+  CalendarEvent,
+} from "../utils/workspace";
+import { useToast } from "./ToastContext";
 
 interface DashboardProps {
   onNavigate: (page: any) => void;
@@ -37,102 +57,140 @@ interface DashboardProps {
 }
 
 export default function Dashboard({ onNavigate, onSelectProjectTemplate }: DashboardProps) {
-  // Sample analytics data
-  const apiTrafficData = [
-    { name: "Mon", requests: 1200, latency: 45 },
-    { name: "Tue", requests: 1850, latency: 42 },
-    { name: "Wed", requests: 2400, latency: 38 },
-    { name: "Thu", requests: 3100, latency: 40 },
-    { name: "Fri", requests: 2900, latency: 41 },
-    { name: "Sat", requests: 1500, latency: 35 },
-    { name: "Sun", requests: 2100, latency: 39 },
-  ];
+  const toast = useToast();
 
-  const aiUsageData = [
-    { name: "Workspace", tokens: 85000 },
-    { name: "Project Gen", tokens: 142000 },
-    { name: "API Docs", tokens: 45000 },
-    { name: "Toolbox", tokens: 24000 },
-    { name: "Learning", tokens: 68000 },
-  ];
+  // Load from localStorage via our dynamic workspace storage system
+  const [projects, setProjects] = useState<Project[]>(() => getStoredProjects());
+  const [tasks, setTasks] = useState<Task[]>(() => getStoredTasks());
+  const [calendarEvents, setCalendarEvents] = useState<Record<string, CalendarEvent[]>>(() => getStoredCalendar());
 
-  // Interactivity State: Projects
-  const [projects, setProjects] = useState([
-    { id: "p1", name: "auth-gateway-lambda", status: "Deployed", tech: "TypeScript, Go", commits: 24, lastDeployed: "10m ago" },
-    { id: "p2", name: "stripe-bento-checkout", status: "Building", tech: "React, Express", commits: 18, lastDeployed: "Running build" },
-    { id: "p3", name: "gemini-summarizer-pro", status: "Active", tech: "Python, Next.js", commits: 42, lastDeployed: "2 hrs ago" },
-    { id: "p4", name: "vector-store-db-driver", status: "Staged", tech: "Rust, WebAssembly", commits: 9, lastDeployed: "1 day ago" },
-  ]);
+  const [xp, setXp] = useState(() => getStoredXP());
+  const [tokens, setTokens] = useState(() => getStoredTokens());
 
+  // Interactivity state
   const [newProjName, setNewProjName] = useState("");
   const [newProjTech, setNewProjTech] = useState("React, Tailwind");
   const [showAddProj, setShowAddProj] = useState(false);
 
+  const [newTaskText, setNewTaskText] = useState("");
+  const [newTaskPriority, setNewTaskPriority] = useState("Medium");
+
+  const [selectedCalendarDate, setSelectedCalendarDate] = useState<string>("2026-07-08");
+  const [newEventTitle, setNewEventTitle] = useState("");
+  const [newEventTime, setNewEventTime] = useState("12:00");
+  const [newEventDate, setNewEventDate] = useState("2026-07-08");
+
+  // Sync state between pages (e.g. Project Generator updates projects list)
+  useEffect(() => {
+    const handleSync = () => {
+      setProjects(getStoredProjects());
+      setXp(getStoredXP());
+      setTokens(getStoredTokens());
+    };
+    window.addEventListener("stackverse_projects_update", handleSync);
+    window.addEventListener("stackverse_xp_update", handleSync);
+    window.addEventListener("stackverse_token_update", handleSync);
+    return () => {
+      window.removeEventListener("stackverse_projects_update", handleSync);
+      window.removeEventListener("stackverse_xp_update", handleSync);
+      window.removeEventListener("stackverse_token_update", handleSync);
+    };
+  }, []);
+
+  // Save changes to storage whenever states are modified
+  useEffect(() => {
+    saveStoredProjects(projects);
+  }, [projects]);
+
+  useEffect(() => {
+    saveStoredTasks(tasks);
+  }, [tasks]);
+
+  useEffect(() => {
+    saveStoredCalendar(calendarEvents);
+  }, [calendarEvents]);
+
+  // Demo Template loading
+  const handleLoadDemoData = () => {
+    setProjects(DEMO_PROJECTS);
+    setTasks(DEMO_TASKS);
+    setCalendarEvents(DEMO_CALENDAR);
+    
+    // Add nice starting XP and token usage to demo the graphs
+    const extraXP = addXP(2450);
+    const extraTokens = addTokens(365200);
+    setXp(extraXP);
+    setTokens(extraTokens);
+
+    toast.success("Demo templates loaded", "Successfully populated your sandbox with simulated metrics and pipelines.");
+  };
+
+  const handleClearWorkspace = () => {
+    setProjects([]);
+    setTasks([]);
+    setCalendarEvents({});
+    localStorage.removeItem("stackverse_xp");
+    localStorage.removeItem("stackverse_token_usage");
+    setXp(0);
+    setTokens(0);
+    toast.info("Workspace Reset", "Pristine developer playground state restored.");
+  };
+
   const handleAddProject = (e: React.FormEvent) => {
     e.preventDefault();
     if (!newProjName) return;
-    const newProj = {
+    const newProj: Project = {
       id: "p_" + Date.now(),
       name: newProjName.toLowerCase().replace(/\s+/g, "-"),
       status: "Deployed",
       tech: newProjTech,
       commits: 1,
-      lastDeployed: "Just now"
+      lastDeployed: "Just now",
     };
-    setProjects([newProj, ...projects]);
+    const updated = [newProj, ...projects];
+    setProjects(updated);
     setNewProjName("");
     setShowAddProj(false);
+    
+    // Gain XP
+    const nextXp = addXP(150);
+    setXp(nextXp);
+    toast.success("Project generated", `Successfully provisioned pipeline for "${newProj.name}"! (+150 XP)`);
   };
-
-  // State: Tasks List
-  const [tasks, setTasks] = useState([
-    { id: "t1", text: "Fix database pool leak in auth proxy", done: false, priority: "High" },
-    { id: "t2", text: "Optimize images for faster Lighthouse scores", done: true, priority: "Medium" },
-    { id: "t3", text: "Integrate mock Stripe webhooks in test suite", done: false, priority: "High" },
-    { id: "t4", text: "Complete Advanced LLM Architecture Quiz", done: false, priority: "Low" },
-  ]);
-  const [newTaskText, setNewTaskText] = useState("");
-  const [newTaskPriority, setNewTaskPriority] = useState("Medium");
 
   const handleAddTask = (e: React.FormEvent) => {
     e.preventDefault();
     if (!newTaskText) return;
-    const newTask = {
+    const newTask: Task = {
       id: "t_" + Date.now(),
       text: newTaskText,
       done: false,
-      priority: newTaskPriority
+      priority: newTaskPriority,
     };
     setTasks([...tasks, newTask]);
     setNewTaskText("");
+
+    // Gain XP
+    const nextXp = addXP(50);
+    setXp(nextXp);
+    toast.success("Task Created", "New checklist item registered successfully. (+50 XP)");
   };
 
   const toggleTask = (id: string) => {
-    setTasks(tasks.map(t => t.id === id ? { ...t, done: !t.done } : t));
+    const updatedTasks = tasks.map((t) => {
+      if (t.id === id) {
+        const nextDone = !t.done;
+        if (nextDone) {
+          const nextXp = addXP(100);
+          setXp(nextXp);
+          toast.success("Task Completed", `Scrum task item cleared! (+100 XP)`);
+        }
+        return { ...t, done: nextDone };
+      }
+      return t;
+    });
+    setTasks(updatedTasks);
   };
-
-  // State: Interactive Calendar
-  const [selectedCalendarDate, setSelectedCalendarDate] = useState<string>("2026-07-08");
-  const [calendarEvents, setCalendarEvents] = useState<Record<string, { title: string; time: string; type: string }[]>>({
-    "2026-07-07": [
-      { title: "Lighthouse V10 Performance Audit Run", time: "14:00", type: "audit" },
-      { title: "Core Sync with Launch Pad Pipeline", time: "16:30", type: "launch" }
-    ],
-    "2026-07-08": [
-      { title: "Weekly Dev Demo Meeting", time: "10:00", type: "sync" },
-      { title: "Deploy vector-store-db v1.4", time: "15:00", type: "release" }
-    ],
-    "2026-07-10": [
-      { title: "StackVerse Virtual Hackathon Begins", time: "09:00", type: "event" }
-    ],
-    "2026-07-15": [
-      { title: "Monthly Production Release Milestone", time: "11:00", type: "release" }
-    ],
-  });
-
-  const [newEventTitle, setNewEventTitle] = useState("");
-  const [newEventTime, setNewEventTime] = useState("12:00");
-  const [newEventDate, setNewEventDate] = useState("2026-07-08");
 
   const handleAddEvent = (e: React.FormEvent) => {
     e.preventDefault();
@@ -140,11 +198,35 @@ export default function Dashboard({ onNavigate, onSelectProjectTemplate }: Dashb
     const list = calendarEvents[newEventDate] || [];
     const updatedEvents = {
       ...calendarEvents,
-      [newEventDate]: [...list, { title: newEventTitle, time: newEventTime, type: "manual" }]
+      [newEventDate]: [...list, { title: newEventTitle, time: newEventTime, type: "manual" }],
     };
     setCalendarEvents(updatedEvents);
     setNewEventTitle("");
+
+    // Gain XP
+    const nextXp = addXP(75);
+    setXp(nextXp);
+    toast.success("Milestone Scheduled", "Release milestone successfully mapped to calendar. (+75 XP)");
   };
+
+  // Sample analytics data dynamically scaling based on activity
+  const apiTrafficData = [
+    { name: "Mon", requests: projects.length > 0 ? 1200 : 0, latency: projects.length > 0 ? 45 : 0 },
+    { name: "Tue", requests: projects.length > 0 ? 1850 : 0, latency: projects.length > 0 ? 42 : 0 },
+    { name: "Wed", requests: projects.length > 0 ? 2400 : 0, latency: projects.length > 0 ? 38 : 0 },
+    { name: "Thu", requests: projects.length > 0 ? 3100 : 0, latency: projects.length > 0 ? 40 : 0 },
+    { name: "Fri", requests: projects.length > 0 ? 2900 : 0, latency: projects.length > 0 ? 41 : 0 },
+    { name: "Sat", requests: projects.length > 0 ? 1500 : 0, latency: projects.length > 0 ? 35 : 0 },
+    { name: "Sun", requests: projects.length > 0 ? 2100 + (projects.length * 300) : 0, latency: projects.length > 0 ? 39 : 0 },
+  ];
+
+  const aiUsageData = [
+    { name: "Workspace", tokens: tokens > 0 ? Math.floor(tokens * 0.23) : 0 },
+    { name: "Project Gen", tokens: tokens > 0 ? Math.floor(tokens * 0.39) : 0 },
+    { name: "API Docs", tokens: tokens > 0 ? Math.floor(tokens * 0.12) : 0 },
+    { name: "Toolbox", tokens: tokens > 0 ? Math.floor(tokens * 0.07) : 0 },
+    { name: "Learning", tokens: tokens > 0 ? Math.floor(tokens * 0.19) : 0 },
+  ];
 
   // State: System Logs
   const [systemLogs, setSystemLogs] = useState<string[]>([
@@ -175,10 +257,34 @@ export default function Dashboard({ onNavigate, onSelectProjectTemplate }: Dashb
       {/* Metrics Banner */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {[
-          { label: "Active Deployments", value: "14", change: "+2 this week", icon: Layers, color: "text-indigo-400" },
-          { label: "AI API Token Usage", value: "365.2k", change: "42% of monthly quota", icon: Sparkles, color: "text-violet-400" },
-          { label: "Developer Workspace XP", value: "2,450 XP", change: "Level 14 Arch-Mage", icon: Cpu, color: "text-amber-400" },
-          { label: "Gateway Status", value: "99.98%", change: "Healthy (14ms latency)", icon: Activity, color: "text-emerald-400" },
+          {
+            label: "Active Deployments",
+            value: projects.length.toString(),
+            change: projects.length === 0 ? "No active pipelines" : `+${projects.filter(p => p.status === "Deployed").length} live nodes`,
+            icon: Layers,
+            color: "text-indigo-400"
+          },
+          {
+            label: "AI API Token Usage",
+            value: tokens > 0 ? `${(tokens / 1000).toFixed(1)}k` : "0",
+            change: tokens === 0 ? "Fresh quota available" : `${Math.min(100, Math.round((tokens / 1000000) * 100))}% of monthly quota`,
+            icon: Sparkles,
+            color: "text-violet-400"
+          },
+          {
+            label: "Developer Workspace XP",
+            value: `${xp.toLocaleString()} XP`,
+            change: `Level ${Math.floor(xp / 500) + 1} Sandbox Arch-Mage`,
+            icon: Cpu,
+            color: "text-amber-400"
+          },
+          {
+            label: "Gateway Status",
+            value: projects.length === 0 ? "Inactive" : "99.98%",
+            change: projects.length === 0 ? "No active sandbox gate" : "Healthy (14ms latency)",
+            icon: Activity,
+            color: "text-emerald-400"
+          },
         ].map((item, idx) => {
           const Icon = item.icon;
           return (
@@ -199,7 +305,7 @@ export default function Dashboard({ onNavigate, onSelectProjectTemplate }: Dashb
                 </div>
               </div>
               <div className="mt-4 flex items-center text-xs text-slate-400 gap-1.5">
-                <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-pulse" />
+                <span className={`w-1.5 h-1.5 rounded-full animate-pulse ${projects.length > 0 ? "bg-emerald-500" : "bg-slate-600"}`} />
                 {item.change}
               </div>
             </motion.div>
@@ -279,6 +385,32 @@ export default function Dashboard({ onNavigate, onSelectProjectTemplate }: Dashb
         </div>
       </div>
 
+      {/* Workspace Management Bar (Visible only when empty or to reset state) */}
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 p-4 bg-indigo-950/20 border border-indigo-500/15 rounded-2xl">
+        <div className="space-y-0.5">
+          <h4 className="text-xs font-bold text-slate-200 uppercase tracking-wider font-display">Sandbox Playground Controller</h4>
+          <p className="text-[11px] text-slate-400">Pristine account state enabled. Switch between empty live slate and demo datasets.</p>
+        </div>
+        <div className="flex gap-2">
+          {projects.length > 0 && (
+            <button
+              onClick={handleClearWorkspace}
+              className="px-3.5 py-2 bg-slate-900 border border-white/5 hover:bg-slate-800 hover:border-rose-500/30 text-slate-300 rounded-xl text-xs font-bold transition-all cursor-pointer"
+            >
+              Reset to Clean State
+            </button>
+          )}
+          {projects.length === 0 && (
+            <button
+              onClick={handleLoadDemoData}
+              className="px-3.5 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-bold transition-all cursor-pointer shadow-md"
+            >
+              Load Demo Template Workspace
+            </button>
+          )}
+        </div>
+      </div>
+
       {/* Grid: Projects & Tasks */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         {/* Projects List */}
@@ -348,50 +480,78 @@ export default function Dashboard({ onNavigate, onSelectProjectTemplate }: Dashb
               </motion.form>
             )}
 
-            <div className="space-y-3">
-              {projects.map((proj) => (
-                <div
-                  key={proj.id}
-                  className="p-3.5 rounded-xl bg-slate-900/40 border border-white/5 hover:border-indigo-500/30 transition-all flex items-center justify-between group"
-                >
-                  <div className="space-y-1">
-                    <div className="flex items-center gap-2">
-                      <span className="font-semibold text-sm text-slate-200 group-hover:text-indigo-400 transition-colors">
-                        {proj.name}
-                      </span>
-                      <span className="text-[10px] font-mono text-slate-500 bg-slate-950 px-2 py-0.5 rounded border border-white/5">
-                        {proj.tech}
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-3 text-xs text-slate-400">
-                      <span>{proj.commits} commits</span>
-                      <span>•</span>
-                      <span>Deploys: {proj.lastDeployed}</span>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span
-                      className={`text-[10px] px-2 py-0.5 rounded-full font-semibold border ${
-                        proj.status === "Deployed" || proj.status === "Active"
-                          ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
-                          : proj.status === "Building"
-                          ? "bg-amber-500/10 text-amber-400 border-amber-500/20 animate-pulse"
-                          : "bg-slate-500/10 text-slate-400 border-slate-500/20"
-                      }`}
-                    >
-                      {proj.status}
-                    </span>
-                    <button
-                      onClick={() => onNavigate("project-generator")}
-                      className="opacity-0 group-hover:opacity-100 p-1.5 rounded bg-slate-800 text-slate-300 hover:text-white transition-all"
-                      title="Manage or generate more details"
-                    >
-                      <ArrowRight className="h-3.5 w-3.5" />
-                    </button>
-                  </div>
+            {projects.length === 0 ? (
+              <div className="py-12 text-center bg-slate-900/20 border border-dashed border-white/10 rounded-2xl flex flex-col items-center justify-center space-y-4">
+                <div className="p-3 rounded-full bg-indigo-500/10 text-indigo-400">
+                  <FolderOpen className="h-8 w-8 animate-pulse" />
                 </div>
-              ))}
-            </div>
+                <div>
+                  <h4 className="text-sm font-semibold text-slate-200 font-display">No active sandbox projects yet</h4>
+                  <p className="text-xs text-slate-400 mt-1 max-w-xs mx-auto leading-relaxed">
+                    Your fresh sandbox is ready. Synthesize a structure in our AI Generator or load templates.
+                  </p>
+                </div>
+                <div className="flex gap-2.5">
+                  <button
+                    onClick={() => onNavigate("project-generator")}
+                    className="text-xs px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl font-bold cursor-pointer transition-all shadow-md"
+                  >
+                    Open AI Generator
+                  </button>
+                  <button
+                    onClick={handleLoadDemoData}
+                    className="text-xs px-4 py-2 bg-slate-900 border border-white/5 hover:border-indigo-500/30 text-slate-300 rounded-xl font-semibold cursor-pointer transition-all"
+                  >
+                    Load Demo Data
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {projects.map((proj) => (
+                  <div
+                    key={proj.id}
+                    className="p-3.5 rounded-xl bg-slate-900/40 border border-white/5 hover:border-indigo-500/30 transition-all flex items-center justify-between group"
+                  >
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-2">
+                        <span className="font-semibold text-sm text-slate-200 group-hover:text-indigo-400 transition-colors">
+                          {proj.name}
+                        </span>
+                        <span className="text-[10px] font-mono text-slate-500 bg-slate-950 px-2 py-0.5 rounded border border-white/5">
+                          {proj.tech}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-3 text-xs text-slate-400">
+                        <span>{proj.commits} commits</span>
+                        <span>•</span>
+                        <span>Deploys: {proj.lastDeployed}</span>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span
+                        className={`text-[10px] px-2 py-0.5 rounded-full font-semibold border ${
+                          proj.status === "Deployed" || proj.status === "Active"
+                            ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
+                            : proj.status === "Building"
+                            ? "bg-amber-500/10 text-amber-400 border-amber-500/20 animate-pulse"
+                            : "bg-slate-500/10 text-slate-400 border-slate-500/20"
+                        }`}
+                      >
+                        {proj.status}
+                      </span>
+                      <button
+                        onClick={() => onNavigate("project-generator")}
+                        className="opacity-0 group-hover:opacity-100 p-1.5 rounded bg-slate-800 text-slate-300 hover:text-white transition-all"
+                        title="Manage or generate more details"
+                      >
+                        <ArrowRight className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
 
           <div className="mt-4 pt-4 border-t border-white/5 flex justify-between items-center text-xs text-indigo-400 hover:text-indigo-300 cursor-pointer" onClick={() => onNavigate("project-generator")}>
@@ -430,41 +590,55 @@ export default function Dashboard({ onNavigate, onSelectProjectTemplate }: Dashb
               </select>
               <button
                 type="submit"
-                className="p-2 rounded-lg bg-indigo-600 text-white hover:bg-indigo-500 cursor-pointer"
+                className="p-2 rounded-lg bg-indigo-600 text-white hover:bg-indigo-500 cursor-pointer animate-pulse"
               >
                 <Plus className="h-4 w-4" />
               </button>
             </form>
 
-            <div className="space-y-2.5 max-h-60 overflow-y-auto pr-1">
-              {tasks.map((task) => (
-                <div
-                  key={task.id}
-                  onClick={() => toggleTask(task.id)}
-                  className="p-3 rounded-xl bg-slate-950/40 border border-white/5 hover:border-white/10 transition-all flex items-center gap-3 cursor-pointer group"
-                >
-                  <div className={`h-4.5 w-4.5 rounded border flex items-center justify-center transition-all ${
-                    task.done ? "bg-indigo-600 border-indigo-600 text-white" : "border-slate-700 hover:border-indigo-500"
-                  }`}>
-                    {task.done && <CheckCircle className="h-3.5 w-3.5" />}
-                  </div>
-                  <div className="flex-grow">
-                    <p className={`text-xs ${task.done ? "line-through text-slate-500" : "text-slate-200"}`}>
-                      {task.text}
-                    </p>
-                  </div>
-                  <span className={`text-[9px] font-mono px-1.5 py-0.5 rounded ${
-                    task.priority === "High"
-                      ? "bg-rose-500/10 text-rose-400 border border-rose-500/20"
-                      : task.priority === "Medium"
-                      ? "bg-amber-500/10 text-amber-400 border border-amber-500/20"
-                      : "bg-slate-500/10 text-slate-400 border border-slate-500/20"
-                  }`}>
-                    {task.priority}
-                  </span>
+            {tasks.length === 0 ? (
+              <div className="py-12 text-center bg-slate-900/20 border border-dashed border-white/10 rounded-2xl flex flex-col items-center justify-center space-y-4">
+                <div className="p-3 rounded-full bg-indigo-500/10 text-indigo-400">
+                  <CheckSquare className="h-8 w-8" />
                 </div>
-              ))}
-            </div>
+                <div>
+                  <h4 className="text-sm font-semibold text-slate-200 font-display">Your backlog is clear</h4>
+                  <p className="text-xs text-slate-400 mt-1 max-w-xs mx-auto leading-relaxed">
+                    All pipelines synchronized. Register a custom task above to begin tracking milestones.
+                  </p>
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-2.5 max-h-60 overflow-y-auto pr-1">
+                {tasks.map((task) => (
+                  <div
+                    key={task.id}
+                    onClick={() => toggleTask(task.id)}
+                    className="p-3 rounded-xl bg-slate-950/40 border border-white/5 hover:border-white/10 transition-all flex items-center gap-3 cursor-pointer group"
+                  >
+                    <div className={`h-4.5 w-4.5 rounded border flex items-center justify-center transition-all ${
+                      task.done ? "bg-indigo-600 border-indigo-600 text-white" : "border-slate-700 hover:border-indigo-500"
+                    }`}>
+                      {task.done && <CheckCircle className="h-3.5 w-3.5" />}
+                    </div>
+                    <div className="flex-grow">
+                      <p className={`text-xs ${task.done ? "line-through text-slate-500" : "text-slate-200"}`}>
+                        {task.text}
+                      </p>
+                    </div>
+                    <span className={`text-[9px] font-mono px-1.5 py-0.5 rounded ${
+                      task.priority === "High"
+                        ? "bg-rose-500/10 text-rose-400 border border-rose-500/20"
+                        : task.priority === "Medium"
+                        ? "bg-amber-500/10 text-amber-400 border border-amber-500/20"
+                        : "bg-slate-500/10 text-slate-400 border border-slate-500/20"
+                    }`}>
+                      {task.priority}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
 
           <div className="mt-4 pt-3 border-t border-white/5 text-[11px] text-slate-500 flex justify-between">

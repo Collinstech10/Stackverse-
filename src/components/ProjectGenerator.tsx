@@ -21,6 +21,12 @@ import {
 } from "lucide-react";
 import { ProjectBlueprint } from "../types";
 import { useToast } from "./ToastContext";
+import {
+  getStoredProjects,
+  saveStoredProjects,
+  addXP,
+  addTokens,
+} from "../utils/workspace";
 
 // Recursive File Tree Node Renderer
 interface TreeNodeProps {
@@ -157,7 +163,34 @@ export default function ProjectGenerator() {
       const data = await response.json();
       setBlueprint(data);
       setActiveTab("architecture");
-      toast.success("Project generated", `Successfully synthesized workspace blueprint for "${data.title}".`);
+      toast.success("Project generated", `Successfully synthesized workspace blueprint for "${data.title}". (+500 XP)`);
+
+      // Sync project to dashboard
+      try {
+        const stored = getStoredProjects();
+        const cleanName = data.title.toLowerCase().replace(/[^a-z0-9]+/g, "-");
+        if (!stored.some(p => p.name === cleanName)) {
+          const techList = data.techStack && Array.isArray(data.techStack)
+            ? data.techStack.map((t: any) => t.name.split(" ")[0]).slice(0, 3).join(", ")
+            : "React, TypeScript";
+          const newProj = {
+            id: "p_" + Date.now(),
+            name: cleanName,
+            status: "Deployed",
+            tech: techList,
+            commits: 1,
+            lastDeployed: "Just now"
+          };
+          saveStoredProjects([newProj, ...stored]);
+          window.dispatchEvent(new Event("stackverse_projects_update"));
+        }
+      } catch (e) {
+        console.error("Error saving generated project: ", e);
+      }
+
+      // Add XP & Tokens
+      addXP(500);
+      addTokens(125000);
 
     } catch (err: any) {
       console.error(err);
