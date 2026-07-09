@@ -1,0 +1,6 @@
+{
+  "name": "StackVerse Hub",
+  "description": "Building the Digital Universe, One Stack at a Time. StackVerse Hub is an AI-powered developer ecosystem combining analytics, an AI workspace, developer toolbox, project generator, API hub, learning center, community, and launch pad.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
