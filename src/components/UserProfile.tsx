@@ -42,6 +42,16 @@ function ClerkUserProfileWrapper() {
     );
   }
 
+  if (!user) {
+    return (
+      <UserProfileContent 
+        username="Guest Developer" 
+        avatarUrl="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=120&q=80" 
+        email="Guest Preview Mode"
+      />
+    );
+  }
+
   const username = user?.fullName || user?.username || user?.primaryEmailAddress?.emailAddress?.split("@")[0] || "Developer";
   const avatarUrl = user?.imageUrl || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=120&q=80";
   const email = user?.primaryEmailAddress?.emailAddress || "no-email@clerk.dev";
