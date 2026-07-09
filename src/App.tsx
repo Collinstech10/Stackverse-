@@ -33,11 +33,17 @@ import LaunchCenter from "./components/LaunchCenter";
 import Pricing from "./components/Pricing";
 import UserProfile from "./components/UserProfile";
 import SettingsComponent from "./components/Settings";
+import IntroScreen from "./components/IntroScreen";
 
 export default function App({ isClerkConfigured = true }: { isClerkConfigured?: boolean }) {
   const [activeTab, setActiveTab] = useState<string>("dashboard");
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [bypassAuth, setBypassAuth] = useState(false);
+  const [showIntro, setShowIntro] = useState(true);
+
+  if (showIntro) {
+    return <IntroScreen onComplete={() => setShowIntro(false)} />;
+  }
 
   // Tab definitions
   const tabs = [
