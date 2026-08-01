@@ -86,7 +86,7 @@ export default function SettingsComponent() {
   // 5. Connections state
   const [connections, setConnections] = useState<any[]>([
     { name: "GitHub Integration", connected: true, service: "github", icon: "🐙", desc: "Sync active gists and pinned repos on portfolio." },
-    { name: "Clerk Authorization", connected: true, service: "clerk", icon: "👤", desc: "Type-safe JWT sync and roles verification." },
+    { name: "OAuth Security Gateway", connected: true, service: "oauth", icon: "🛡️", desc: "Token authentication and security policy enforcement." },
     { name: "Stripe Ledger Hub", connected: false, service: "stripe", icon: "💳", desc: "Relay invoice parameters and intents telemetry." },
     { name: "Slack Alerts Sync", connected: false, service: "slack", icon: "💬", desc: "Dispatch deployment success notifications." }
   ]);

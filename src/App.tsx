@@ -1,6 +1,5 @@
 import React, { useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
-import { SignedIn, SignedOut, SignIn, UserButton, useUser } from "@clerk/clerk-react";
 import {
   LayoutDashboard,
   Cpu,
@@ -18,7 +17,6 @@ import {
   Layers,
   Terminal,
   Activity,
-  Award
 } from "lucide-react";
 
 // Component imports
@@ -35,16 +33,9 @@ import UserProfile from "./components/UserProfile";
 import SettingsComponent from "./components/Settings";
 import IntroScreen from "./components/IntroScreen";
 
-export default function App({ 
-  isClerkConfigured = true,
-  clerkError = null
-}: { 
-  isClerkConfigured?: boolean;
-  clerkError?: Error | null;
-}) {
+export default function App() {
   const [activeTab, setActiveTab] = useState<string>("dashboard");
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [bypassAuth, setBypassAuth] = useState(false);
   const [showIntro, setShowIntro] = useState(true);
 
   if (showIntro) {
@@ -89,7 +80,7 @@ export default function App({
       case "pricing":
         return <Pricing />;
       case "profile":
-        return <UserProfile isClerkConfigured={isClerkConfigured && !bypassAuth} />;
+        return <UserProfile />;
       case "settings":
         return <SettingsComponent />;
       default:
@@ -102,7 +93,7 @@ export default function App({
     return tab ? tab.label : "Dashboard";
   };
 
-  const mainLayout = (
+  return (
     <div className="min-h-screen bg-slate-950 text-slate-100 flex font-sans selection:bg-indigo-500/20 overflow-hidden">
       
       {/* Background Decorative Gradients */}
@@ -156,7 +147,7 @@ export default function App({
         </div>
 
         {/* User context footer */}
-        <SidebarUserFooter isClerkConfigured={isClerkConfigured} onSignIn={() => setBypassAuth(false)} />
+        <SidebarUserFooter />
       </aside>
 
       {/* Mobile drawer overlay */}
@@ -257,65 +248,13 @@ export default function App({
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
                 <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-500"></span>
               </span>
-              <span>STANDBY</span>
+              <span>READY</span>
             </div>
           </div>
         </header>
 
         {/* Content viewport area */}
         <main className="flex-grow p-6 overflow-y-auto relative h-[calc(100vh-64px)]">
-          {!isClerkConfigured && (
-            <div className="mb-6 p-4 rounded-2xl bg-indigo-500/5 border border-indigo-500/20 text-indigo-400 flex flex-col md:flex-row md:items-center justify-between gap-4 text-xs">
-              <div className="flex items-start md:items-center gap-3">
-                <div className="p-1.5 rounded-lg bg-indigo-500/10 shrink-0">
-                  <Sparkles className="h-4 w-4 text-indigo-400 animate-pulse" />
-                </div>
-                <div>
-                  <p className="font-bold text-slate-200">
-                    {clerkError ? "Clerk Authentication Blocked or Timed Out" : "Clerk Auth Sandbox Preview"}
-                  </p>
-                  <p className="text-slate-400 mt-0.5">
-                    {clerkError ? (
-                      <>
-                        We detected your publishable key, but <span className="text-rose-400 font-semibold">Clerk failed to load</span>. This is usually caused by <span className="text-indigo-300">adblockers</span>, privacy extensions, or a restrictive network firewall blocking Clerk's CDN domain (<code className="font-mono text-[11px] text-indigo-300 bg-indigo-950/40 px-1 py-0.5 rounded">clerk.accounts.dev</code>).
-                      </>
-                    ) : (
-                      <>
-                        The app is running in guest mode. Set <code className="font-mono text-[11px] text-indigo-300 bg-indigo-950/40 px-1 py-0.5 rounded">VITE_CLERK_PUBLISHABLE_KEY</code> in the Settings secrets menu to enable Clerk Auth.
-                      </>
-                    )}
-                  </p>
-                </div>
-              </div>
-              {clerkError && (
-                <button
-                  onClick={() => window.location.reload()}
-                  className="px-3.5 py-1.5 bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-300 hover:text-white border border-indigo-500/30 rounded-xl text-xs font-bold cursor-pointer transition-all shrink-0"
-                >
-                  Retry Loading
-                </button>
-              )}
-            </div>
-          )}
-          {isClerkConfigured && bypassAuth && (
-            <div className="mb-6 p-4 rounded-2xl bg-indigo-500/5 border border-indigo-500/20 text-indigo-400 flex items-start sm:items-center justify-between gap-4 text-xs">
-              <div className="flex items-start sm:items-center gap-3">
-                <div className="p-1.5 rounded-lg bg-indigo-500/10 shrink-0">
-                  <Sparkles className="h-4 w-4 text-indigo-400" />
-                </div>
-                <div>
-                  <p className="font-bold">Guest Preview Mode Active</p>
-                  <p className="text-slate-400 mt-0.5">You are currently previewing StackVerse Hub as a guest.</p>
-                </div>
-              </div>
-              <button 
-                onClick={() => setBypassAuth(false)}
-                className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white font-medium rounded-lg transition shrink-0 cursor-pointer text-[11px]"
-              >
-                Sign In / Sign Up
-              </button>
-            </div>
-          )}
           <AnimatePresence mode="wait">
             <motion.div
               key={activeTab}
@@ -334,153 +273,25 @@ export default function App({
 
     </div>
   );
-
-  if (!isClerkConfigured || bypassAuth) {
-    return mainLayout;
-  }
-
-  return (
-    <>
-      <SignedIn>
-        {mainLayout}
-      </SignedIn>
-      <SignedOut>
-        <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col items-center justify-center relative font-sans p-4">
-          {/* Decorative Background */}
-          <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-indigo-500/10 rounded-full blur-[100px] pointer-events-none" />
-          <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-violet-500/10 rounded-full blur-[100px] pointer-events-none" />
-          
-          <div className="text-center mb-8 max-w-sm z-10">
-            <div className="inline-flex h-12 w-12 rounded-2xl bg-gradient-to-tr from-indigo-600 to-violet-600 items-center justify-center text-white shadow-lg shadow-indigo-500/20 mb-4 animate-bounce">
-              <Layers className="h-6 w-6" />
-            </div>
-            <h1 className="text-2xl font-bold font-display tracking-tight text-white">Welcome to StackVerse Hub</h1>
-            <p className="text-sm text-slate-400 mt-2 font-display">Sign in with Clerk to access your personalized SaaS developer engine</p>
-          </div>
-
-          <div className="z-10 shadow-2xl rounded-2xl overflow-hidden border border-white/5">
-            <SignIn routing="hash" />
-          </div>
-
-          {/* Continue as Guest Button */}
-          <button 
-            onClick={() => setBypassAuth(true)}
-            className="mt-6 z-10 px-5 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 hover:border-white/20 transition text-xs font-semibold text-slate-300 hover:text-white flex items-center gap-2 cursor-pointer shadow-lg"
-          >
-            <Sparkles className="h-4 w-4 text-indigo-400" />
-            Continue as Guest (Demo Mode)
-          </button>
-        </div>
-      </SignedOut>
-    </>
-  );
 }
 
-// Sidebar User Footer Helper Components
-function SidebarUserFooter({ 
-  isClerkConfigured, 
-  onSignIn 
-}: { 
-  isClerkConfigured: boolean; 
-  onSignIn?: () => void;
-}) {
-  if (!isClerkConfigured) {
-    return (
-      <div className="p-4 border-t border-white/5 bg-slate-950/40">
-        <div className="flex items-center gap-3 p-2 rounded-xl bg-slate-950/40 border border-white/5">
-          <img
-            src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=80&q=80"
-            alt="Avatar"
-            className="h-8 w-8 rounded-lg object-cover"
-            referrerPolicy="no-referrer"
-          />
-          <div className="truncate flex-grow">
-            <p className="text-xs font-bold text-slate-200 truncate">eniolaayobamidele0</p>
-            <span className="text-[9px] font-mono text-amber-400 flex items-center gap-1">
-              <span className="h-1.5 w-1.5 rounded-full bg-amber-400 animate-pulse" />
-              Guest Sandbox
-            </span>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  return <ClerkSidebarUserFooter onSignIn={onSignIn} />;
-}
-
-function ClerkSidebarUserFooter({ onSignIn }: { onSignIn?: () => void }) {
-  const { user, isLoaded } = useUser();
-  
-  if (!isLoaded) {
-    return (
-      <div className="p-4 border-t border-white/5 bg-slate-950/40">
-        <div className="flex items-center gap-3 p-2 rounded-xl bg-slate-950/40 border border-white/5 animate-pulse">
-          <div className="h-8 w-8 rounded-lg bg-slate-800" />
-          <div className="space-y-1.5 flex-grow">
-            <div className="h-3 w-20 bg-slate-800 rounded" />
-            <div className="h-2 w-12 bg-slate-800 rounded" />
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  if (!user) {
-    return (
-      <div className="p-4 border-t border-white/5 bg-slate-950/40">
-        <div className="flex flex-col gap-2 p-2 rounded-xl bg-slate-950/40 border border-white/5">
-          <div className="flex items-center gap-3">
-            <img
-              src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=80&q=80"
-              alt="Avatar"
-              className="h-8 w-8 rounded-lg object-cover"
-              referrerPolicy="no-referrer"
-            />
-            <div className="truncate flex-grow">
-              <p className="text-xs font-bold text-slate-200 truncate">Guest Developer</p>
-              <span className="text-[9px] font-mono text-amber-400 flex items-center gap-1">
-                <span className="h-1.5 w-1.5 rounded-full bg-amber-400 animate-pulse" />
-                Guest Mode
-              </span>
-            </div>
-          </div>
-          {onSignIn && (
-            <button
-              onClick={onSignIn}
-              className="w-full mt-1 py-1.5 px-2 bg-indigo-600 hover:bg-indigo-500 text-white text-[10px] font-semibold rounded-lg transition cursor-pointer text-center"
-            >
-              Sign In with Clerk
-            </button>
-          )}
-        </div>
-      </div>
-    );
-  }
-
-  const username = user?.fullName || user?.username || user?.primaryEmailAddress?.emailAddress?.split("@")[0] || "Developer";
-  const avatarUrl = user?.imageUrl || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=80&q=80";
-
+// Sidebar User Footer Helper Component
+function SidebarUserFooter() {
   return (
     <div className="p-4 border-t border-white/5 bg-slate-950/40">
-      <div className="flex items-center justify-between p-2 rounded-xl bg-slate-950/40 border border-white/5">
-        <div className="flex items-center gap-2.5 truncate max-w-[140px]">
-          <img
-            src={avatarUrl}
-            alt="Avatar"
-            className="h-8 w-8 rounded-lg object-cover border border-indigo-500/30"
-            referrerPolicy="no-referrer"
-          />
-          <div className="truncate">
-            <p className="text-xs font-bold text-slate-200 truncate">{username}</p>
-            <span className="text-[9px] font-mono text-indigo-400 flex items-center gap-1">
-              <span className="h-1.5 w-1.5 rounded-full bg-indigo-400 animate-pulse" />
-              Verified User
-            </span>
-          </div>
-        </div>
-        <div className="shrink-0 scale-90">
-          <UserButton afterSignOutUrl="/" />
+      <div className="flex items-center gap-3 p-2 rounded-xl bg-slate-950/40 border border-white/5">
+        <img
+          src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=80&q=80"
+          alt="Avatar"
+          className="h-8 w-8 rounded-lg object-cover border border-indigo-500/30"
+          referrerPolicy="no-referrer"
+        />
+        <div className="truncate flex-grow">
+          <p className="text-xs font-bold text-slate-200 truncate">eniolaayobamidele0</p>
+          <span className="text-[9px] font-mono text-indigo-400 flex items-center gap-1">
+            <span className="h-1.5 w-1.5 rounded-full bg-indigo-400 animate-pulse" />
+            Developer Mode
+          </span>
         </div>
       </div>
     </div>

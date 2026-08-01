@@ -1,27 +1,12 @@
 import React, { useState } from "react";
-import { motion } from "motion/react";
-import { useUser } from "@clerk/clerk-react";
 import {
-  Trophy,
-  Sparkles,
-  GitPullRequest,
   BookOpen,
-  Code2,
   Calendar,
-  Layers,
   Award,
-  Star,
-  Cpu,
-  Bookmark,
-  CheckCircle,
-  ExternalLink
+  Star
 } from "lucide-react";
 
-export default function UserProfile({ isClerkConfigured = false }: { isClerkConfigured?: boolean }) {
-  if (isClerkConfigured) {
-    return <ClerkUserProfileWrapper />;
-  }
-  
+export default function UserProfile() {
   return (
     <UserProfileContent 
       username="eniolaayobamidele0" 
@@ -31,39 +16,9 @@ export default function UserProfile({ isClerkConfigured = false }: { isClerkConf
   );
 }
 
-function ClerkUserProfileWrapper() {
-  const { user, isLoaded } = useUser();
-
-  if (!isLoaded) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <div className="h-8 w-8 rounded-full border-2 border-indigo-500 border-t-transparent animate-spin" />
-      </div>
-    );
-  }
-
-  if (!user) {
-    return (
-      <UserProfileContent 
-        username="Guest Developer" 
-        avatarUrl="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=120&q=80" 
-        email="Guest Preview Mode"
-      />
-    );
-  }
-
-  const username = user?.fullName || user?.username || user?.primaryEmailAddress?.emailAddress?.split("@")[0] || "Developer";
-  const avatarUrl = user?.imageUrl || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=120&q=80";
-  const email = user?.primaryEmailAddress?.emailAddress || "no-email@clerk.dev";
-
-  return <UserProfileContent username={username} avatarUrl={avatarUrl} email={email} />;
-}
-
 function UserProfileContent({ username, avatarUrl, email }: { username: string; avatarUrl: string; email: string }) {
   const [activeTab, setActiveTab] = useState<"contributions" | "badges" | "courses">("contributions");
 
-  // Simulated GitHub Contribution Grid data (52 weeks x 7 days)
-  // Let's generate a realistic-looking mini grid representing recent pushes
   const contributionGrid = Array.from({ length: 24 }, () =>
     Array.from({ length: 7 }, () => Math.floor(Math.random() * 5))
   );
